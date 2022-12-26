@@ -34,7 +34,8 @@
 #include <rmw_microxrcedds_c/config.h>
 #include <rmw_microros/rmw_microros.h>
 
-#include <std_msgs/msg/int32.h>
+#include <std_msgs/msg/int8.h>
+#include <diagnostic_msgs/msg/diagnostic_array.h>
 
 #include "usart.h"
 /* Private includes ----------------------------------------------------------*/
@@ -49,7 +50,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+  std_msgs__msg__Int8 msgTransmission;
+  diagnostic_msgs__msg__DiagnosticArray msgDiagnostic;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -154,15 +156,18 @@ void   microros_deallocate(void * pointer, void * state);
 void * microros_reallocate(void * pointer, size_t size, void * state);
 void * microros_zero_allocate(size_t number_of_elements, size_t size_of_element, void * state);
 
-static const timeoutAgent_ms = 1500;
+static const int timeoutAgent_ms = 1500;
+int32_t time_sec;
+uint32_t time_nano;
 void microros_CreateFirmware(void) {
 	/*!
 	 * 	Synchronising time with PC
 	 */
 	rmw_uros_sync_session(timeoutAgent_ms);
-	if(rmw_uros_epoch_synchronised()) {
-		int64_t time_ms = rmw_uros_epoch_millis();
+	if(rmw_uros_epoch_synchronized()) {
 		int64_t time_ns = rmw_uros_epoch_nanos();
+		time_sec = time_ns / 1e9;
+		time_nano = time_ns  - (time_sec * 1e9);
 	}
 
 }
@@ -209,12 +214,15 @@ void StartDefaultTask(void *argument)
   }
 
   // micro-ROS app
-
-  rcl_publisher_t publisher;
-  std_msgs__msg__Int32 msg;
+  rosidl_runtime_c__String str;
+  builtin_interfaces__msg__Time timestamp;
+  rcl_publisher_t TransmissionResponse;
+  rcl_publisher_t CarStateResponse;
   rclc_support_t support;
   rcl_allocator_t allocator;
   rcl_node_t node;
+  str.data = "Transmission module";
+  msgDiagnostic.header.frame_id = str;
 
   allocator = rcl_get_default_allocator();
 
@@ -222,24 +230,40 @@ void StartDefaultTask(void *argument)
   rclc_support_init(&support, 0, NULL, &allocator);
 
   // create node
-  rclc_node_init_default(&node, "cubemx_node", "", &support);
+  rclc_node_init_default(&node, "Transmission node", "", &support);
 
+  /*!
+   * 	Transmission Worker publisher
+   */
   rclc_publisher_init_default(
-    &publisher,
+    &TransmissionResponse,
     &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-    "cubemx_publisher");
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int8),
+    "TransmissionPositionResponce");
 
+  /*!
+   *  Car Diagnostics publisher
+   */
+  rclc_publisher_init_default(
+  	&CarStateResponse,
+	&node,
+	ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, DiagnosticArray),
+	"CarStateResponse");
 
+  rcl_ret_t ret;
   for(;;)
   {
-    rcl_ret_t ret = rcl_publish(&publisher, &msg, NULL);
-    if (ret != RCL_RET_OK)
-    {
-      printf("Error publishing (line %d)\n", __LINE__);
-    }
+	  timestamp.nanosec = time_nano;
+	  timestamp.sec = time_sec;
+	  msgDiagnostic.header.stamp = timestamp;
+	  ret = rcl_publish(&TransmissionResponse, &msgTransmission, NULL);
+	  if(ret != RCL_RET_OK) {
+		  printf("Error publishing (line %d)\n", __LINE__);
+	  }
 
-    //msg.data++;
+
+
+
     osDelay(10);
   }
   /* USER CODE END StartDefaultTask */
