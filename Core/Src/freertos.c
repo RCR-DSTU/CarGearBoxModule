@@ -45,25 +45,52 @@ typedef struct {
 	float P_k;
 	float I_k;
 	float D_k;
-	float current;
-	float target;
-	char pid_on;
-	float max_sum_error;
-	float error_end;
-	float output;
-	float min_output;
-	float max_output;
+	float Current;
+	float Target;
+	float Error;
+	float Sum_error;
+	float Prev_error;
+	char  PID_on;
+	char  PID_finish;
+	float Max_sum_error;
+	float Error_end;
+	float Output;
+	float PID_output_end;
+	float PID_error_end;
+	float Min_output;
+	float Max_output;
+    void (*coordinator)(void);
+    void  (*performer)(uint8_t engine, float output);
+    float *Goal;
 }PID;
 PID Regulator[2];
+
+#define POINTS_STACK_SIZE	5
+struct {
+	int8_t Current_flag;
+	bool Finish;
+	float Speed[2];
+	float Distance[2];
+}Transmission;
+
+typedef struct {
+
+}pathPoint;
+pathPoint Points[POINTS_STACK_SIZE];
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define TEST	0
 const char *subscriber_name = "TransmissionPosition";
 const char *publisher_name = "CarStateResponse";
 const int timeout_ms = 250;
 const uint8_t attempts = 5;
-#define TEST	0
+#define uROS_delayMs				100
+#define Regulator_periodMs		    20
+#define Tracking_periodMs			40
+uint16_t EncoderData[2];
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -98,11 +125,6 @@ const osThreadAttr_t xRestart_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
-/* Definitions for xRestartQueue */
-//osMessageQueueId_t xRestartQueueHandle;
-//const osMessageQueueAttr_t xRestartQueue_attributes = {
-//  .name = "xRestartQueue"
-//};
 /* Definitions for xTransmissionQueue */
 osMessageQueueId_t xTransmissionQueueHandle;
 const osMessageQueueAttr_t xTransmissionQueue_attributes = {
@@ -131,7 +153,11 @@ const osSemaphoreAttr_t xRestartSemaphore_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-
+void PID_init(void);
+void PID_calc(uint8_t Reg);
+float goal;
+void SetVoltage(uint8_t Engine, float Duty);
+void ParseEncoderData(void);
 /* USER CODE END FunctionPrototypes */
 
 void uROSTask(void *argument);
@@ -342,6 +368,9 @@ void uROSTask(void *argument)
 	  	/* Send success message with publisher */
 	  	ConstructAnswer("[Transmission Module] OK",time_ms, time_ns);
 	  	ret = rcl_publish(&publisher, &msgDiagnostic, NULL);
+
+	  	/* Delay after uros-app cycle*/
+	  	osDelay( uROS_delayMs / portTICK_RATE_MS);
   }
 
   ret = rcl_publisher_fini(&publisher,&node);
@@ -359,12 +388,20 @@ void uROSTask(void *argument)
 /* USER CODE END Header_TransmissionTask */
 void TransmissionTask(void *argument)
 {
+	int8_t *target;
   /* USER CODE BEGIN TransmissionTask */
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+	  osMessageQueueGet(xTransmissionQueueHandle, &target, NULL, portMAX_DELAY);
+
+	  if(*target != Transmission.Current_flag)
+	  {
+		  /* Start track manager*/
+		  osTimerStart(xTrackRegulatorHandle,Tracking_periodMs / portTICK_RATE_MS);
+	  }
   }
+  osThreadExit();
   /* USER CODE END TransmissionTask */
 }
 
@@ -400,9 +437,8 @@ void RestartTask(void *argument)
 		  xTransmissionHandle = osThreadNew(TransmissionTask, NULL, &xTransmission_attributes);
 
 		  xuROSHandle = osThreadNew(uROSTask, NULL, &xuROS_attributes);
-
-
   }
+  osThreadExit();
   /* USER CODE END RestartTask */
 }
 
@@ -415,27 +451,136 @@ void RestartTask(void *argument)
 void Regulator_Callback(void *argument)
 {
   /* USER CODE BEGIN Regulator_Callback */
-
-
-
-
+	PID_calc(0);
+	PID_calc(1);
   /* USER CODE END Regulator_Callback */
 }
 
+/* Track_Callback function */
 /*!
  * Timer for tracking position
  * @param argument
  */
 void Track_Callback(void *argument)
 {
+	/* USER CODE BEGIN Track_Callback */
 
+
+
+
+	/* USER CODE END Track_Callback */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 
+/*!
+ * Initialization PID parameters
+ */
+void PID_init(void)
+{
+	Regulator[0].P_k = 0.130;
+	Regulator[0].I_k = 0.270;
+	Regulator[0].D_k = 0.15;
+	Regulator[1].P_k = 0.120;
+	Regulator[1].I_k = 0.290;
+	Regulator[1].D_k = 0.15;
 
+	for(int i = 0; i < 1; i++)
+	{
+		Regulator[i].Error = 0.0;
+		Regulator[i].Sum_error = 0.0;
+		Regulator[i].Prev_error = 0.0;
+		Regulator[i].Current = 0.0;
+		Regulator[i].Target = 0.0;
+		Regulator[i].Output = 0.0;
+		Regulator[i].Min_output = 0.01;
+		Regulator[i].Max_output = 1.0;
+		Regulator[i].coordinator = &ParseEncoderData;
+		Regulator[i].performer = &SetVoltage;
+	}
+}
 
+void PID_calc(uint8_t Reg) {
+    Regulator[Reg].Target = *Regulator[Reg].Goal;
+    (void)Regulator[Reg].coordinator();
+    Regulator[Reg].Current = EncoderData[Reg];
+    Regulator[Reg].Error = Regulator[Reg].Target - Regulator[Reg].Current;
+    Regulator[Reg].Sum_error += Regulator[Reg].Error;
+
+    if (Regulator[Reg].Sum_error > Regulator[Reg].Max_sum_error)
+    	Regulator[Reg].Sum_error = Regulator[Reg].Max_sum_error;
+    if (Regulator[Reg].Sum_error < -Regulator[Reg].Max_sum_error)
+    	Regulator[Reg].Sum_error = -Regulator[Reg].Max_sum_error;
+
+    if (Regulator[Reg].PID_on)
+    {
+        Regulator[Reg].Output = ((float)(Regulator[Reg].P_k * Regulator[Reg].Error)+(Regulator[Reg].I_k * Regulator[Reg].Sum_error)+
+                               (Regulator[Reg].D_k * (Regulator[Reg].Prev_error - Regulator[Reg].Error)));
+
+        if (Regulator[Reg].Output > Regulator[Reg].Max_output)
+        	Regulator[Reg].Output = Regulator[Reg].Max_output;
+        else if (Regulator[Reg].Output < -Regulator[Reg].Max_output)
+        	Regulator[Reg].Output = -Regulator[Reg].Max_output;
+
+        if (Regulator[Reg].Output < Regulator[Reg].Min_output && Regulator[Reg].Output > -Regulator[Reg].Min_output)
+        	Regulator[Reg].Output = 0;
+
+        if ((Regulator[Reg].Current <= Regulator[Reg].PID_output_end) &&
+            (Regulator[Reg].Current >= -Regulator[Reg].PID_output_end) &&
+            (Regulator[Reg].Error <= Regulator[Reg].PID_error_end) && (Regulator[Reg].Error >= -Regulator[Reg].PID_error_end))
+        	Regulator[Reg].PID_finish = 1;
+        else
+        	Regulator[Reg].PID_finish = 0;
+    }
+    else
+    {
+    	Regulator[Reg].Output = 0;
+    	Regulator[Reg].PID_finish = 0;
+    }
+    Regulator[Reg].Prev_error = Regulator[Reg].Error;
+    Regulator[Reg].performer(Reg, Regulator[Reg].Output);
+}
+
+/*!
+ * Set voltage on engines
+ * @param Engine number of engine
+ * @param Duty duty value of timer [0.0 ... 1.0]
+ */
+void SetVoltage(uint8_t Engine, float Duty)
+{
+	if(Duty > 1.0) Duty = 1.0;
+	if(Duty < -1.0) Duty = -1.0;
+		if(Engine == 1) {
+			if(Duty >= 0.0) {
+				  HAL_GPIO_WritePin(DIR1_PIN_GPIO_Port, DIR1_PIN_Pin, GPIO_PIN_RESET);
+				  TIM2->CCR1 = ((int32_t) (Duty * TIM2->ARR));
+			} else {
+				  HAL_GPIO_WritePin(DIR1_PIN_GPIO_Port, DIR1_PIN_Pin, GPIO_PIN_SET);
+				  TIM2->CCR1 = ((int32_t)(TIM2->ARR + (Duty * TIM2->ARR)));
+			}
+		}
+		if(Engine == 2) {
+			if(Duty >= 0.0) {
+				  HAL_GPIO_WritePin(DIR2_PIN_GPIO_Port, DIR2_PIN_Pin, GPIO_PIN_RESET);
+				  TIM2->CCR2 = ((int32_t) (Duty * TIM2->ARR));
+			} else {
+				  HAL_GPIO_WritePin(DIR2_PIN_GPIO_Port, DIR2_PIN_Pin, GPIO_PIN_SET);
+				  TIM2->CCR2 = ((int32_t)(TIM2->ARR + (Duty * TIM2->ARR)));
+			}
+		}
+}
+
+/*!
+ * Get encoder data and clear registers
+ */
+void ParseEncoderData(void)
+{
+	EncoderData[0] = TIM3->CNT;
+	EncoderData[1] = TIM4->CNT;
+	TIM3->CNT = 0;
+	TIM4->CNT = 0;
+}
 
 /* USER CODE END Application */
 
