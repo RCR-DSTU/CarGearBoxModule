@@ -63,6 +63,7 @@ const char *subscriber_name = "TransmissionPosition";
 const char *publisher_name = "CarStateResponse";
 const int timeout_ms = 250;
 const uint8_t attempts = 5;
+#define TEST	0
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -98,10 +99,10 @@ const osThreadAttr_t xRestart_attributes = {
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for xRestartQueue */
-osMessageQueueId_t xRestartQueueHandle;
-const osMessageQueueAttr_t xRestartQueue_attributes = {
-  .name = "xRestartQueue"
-};
+//osMessageQueueId_t xRestartQueueHandle;
+//const osMessageQueueAttr_t xRestartQueue_attributes = {
+//  .name = "xRestartQueue"
+//};
 /* Definitions for xTransmissionQueue */
 osMessageQueueId_t xTransmissionQueueHandle;
 const osMessageQueueAttr_t xTransmissionQueue_attributes = {
@@ -118,6 +119,15 @@ const osTimerAttr_t xRegulator_attributes = {
   .name = "xRegulator",
 };
 
+osTimerId_t xTrackRegulatorHandle;
+const osTimerAttr_t xTrack_attributes = {
+		.name = "xTracking",
+};
+/* Definitions for xRestarthandle */
+osSemaphoreId_t xRestartSemaphore;
+const osSemaphoreAttr_t xRestartSemaphore_attributes = {
+  .name = "xRestartSemaphore",
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -128,6 +138,7 @@ void uROSTask(void *argument);
 void TransmissionTask(void *argument);
 void RestartTask(void *argument);
 void Regulator_Callback(void *argument);
+void Track_Callback(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -170,13 +181,14 @@ void MX_FREERTOS_Init(void) {
   /* Create the timer(s) */
   /* creation of xRegulator */
   xRegulatorHandle = osTimerNew(Regulator_Callback, osTimerPeriodic, NULL, &xRegulator_attributes);
+  xTrackRegulatorHandle = osTimerNew(Track_Callback, osTimerPeriodic, NULL, &xTrack_attributes);
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the queue(s) */
-  /* creation of xRestartQueue */
-  xRestartQueueHandle = osMessageQueueNew (1, sizeof(bool), &xRestartQueue_attributes);
+  /* creation of xRestartSemaphore */
+  xRestartHandle = osSemaphoreNew(1, 1, &xRestartSemaphore_attributes);
 
   /* creation of xTransmissionQueue */
   xTransmissionQueueHandle = osMessageQueueNew (1, sizeof(uint8_t), &xTransmissionQueue_attributes);
@@ -191,13 +203,16 @@ void MX_FREERTOS_Init(void) {
   /* Create the thread(s) */
   /* creation of xuROS */
   xuROSHandle = osThreadNew(uROSTask, NULL, &xuROS_attributes);
-
   /* creation of xTransmission */
+#if(TEST == 0)
   xTransmissionHandle = osThreadNew(TransmissionTask, NULL, &xTransmission_attributes);
-
+  osThreadSuspend(xTransmissionHandle);
+#endif
   /* creation of xRestart */
+#if(TEST == 0)
   xRestartHandle = osThreadNew(RestartTask, NULL, &xRestart_attributes);
-
+  osThreadSuspend(xRestartHandle);
+#endif
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -231,9 +246,13 @@ void ConstructAnswer(char* message, uint32_t millisec, uint32_t nanosec) {
 	msgDiagnostic.header.frame_id.data = message;
 }
 
+/*!
+ * subscription callback function
+ * @param msgin new value data from TransmissionPosition subscriber
+ */
 void subscription_callback(const void* msgin) {
 	const std_msgs__msg__Int8 * msg = (std_msgs__msg__Int8 *)msgin;
-	msgTransmission.data = msg->data;
+	msgTransmission = *msg;
 	printf("Received msg from topic \r\n");
 }
 
@@ -281,7 +300,7 @@ void uROSTask(void *argument)
 	    publisher_name);
 
 	  if(RCL_RET_OK != ret) {
-		  // RESET TASK
+		  osSemaphoreRelease(xRestartSemaphore);
 	  }
 
 	  ret = rclc_subscription_init_default(
@@ -295,35 +314,39 @@ void uROSTask(void *argument)
 
 	  ret = rclc_executor_add_subscription(&executor, &subscriber, &msgDiagnostic,
 			  &subscription_callback, ON_NEW_DATA);
-	  if(RCL_RET_OK != ret) { /* RESET TASK */ }
+	  if(RCL_RET_OK != ret) { osSemaphoreRelease(xRestartSemaphore); }
 
 	  int64_t time_ns, time_ms = 0;
 
   /* Infinite loop */
   for(;;)
   {
+	  /*!
+	   * 1) check ping agent result
+	   * 2) check time sync result
+	   * 3) get new value from subscriber
+	   * 4) publish current value
+	   * 5) if new data is new position of transmission -> Start performer task
+	   */
 	  	rmw_ret_t ping_result = rmw_uros_ping_agent(timeout_ms,attempts);
-	  	if(RMW_RET_OK != ping_result) { /* RESET TASK */ }
+	  	if(RMW_RET_OK != ping_result) { osSemaphoreRelease(xRestartSemaphore); }
 
 	  	rmw_uros_sync_session(timeout_ms);
-	  	if(!rmw_uros_epoch_synchronized()) { /* RESET TASK */ }
+	  	if(!rmw_uros_epoch_synchronized()) { osSemaphoreRelease(xRestartSemaphore); }
 	  	time_ms = rmw_uros_epoch_millis();
 	  	time_ns = rmw_uros_epoch_nanos();
 
-
-	  	ConstructAnswer("OK",time_ms, time_ns);
-	  	ret = rcl_publish(&publisher, &msgDiagnostic, NULL);
-
-
-	  	if(RCL_RET_OK != ret) { /* RESET TASK */ }
+	  	if(RCL_RET_OK != ret) { osSemaphoreRelease(xRestartSemaphore); }
 	  	rclc_executor_spin_some(&executor, RCL_MS_TO_NS(50));
 
-	    osDelay(10);
+	  	/* Send success message with publisher */
+	  	ConstructAnswer("[Transmission Module] OK",time_ms, time_ns);
+	  	ret = rcl_publish(&publisher, &msgDiagnostic, NULL);
   }
 
   ret = rcl_publisher_fini(&publisher,&node);
   ret = rcl_subscription_fini(&subscriber,&node);
-  vTaskDelete(NULL);
+  osThreadExit();
   /* USER CODE END uROSTask */
 }
 
@@ -358,7 +381,27 @@ void RestartTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+	  osSemaphoreAcquire(xRestartSemaphore, portMAX_DELAY);
+		  /* Stop current tasks */
+		  osThreadSuspend(xuROSHandle);
+		  osThreadSuspend(xTransmissionHandle);
+
+		  __NOP();
+
+		  /* delete tasks */
+		  osThreadTerminate(xuROSHandle);
+		  osThreadTerminate(xTransmissionHandle);
+
+		  /* reset current queues */
+		  osMessageQueueReset(xTransmissionQueueHandle);
+		  osMessageQueueReset(xStateQueueHandle);
+
+		  /* creating tasks again */
+		  xTransmissionHandle = osThreadNew(TransmissionTask, NULL, &xTransmission_attributes);
+
+		  xuROSHandle = osThreadNew(uROSTask, NULL, &xuROS_attributes);
+
+
   }
   /* USER CODE END RestartTask */
 }
@@ -366,7 +409,7 @@ void RestartTask(void *argument)
 
 /* Regulator_Callback function */
 /*!
- * Программный таймер управления регулятором
+ * Timer for control PID regulator
  * @param argument
  */
 void Regulator_Callback(void *argument)
@@ -377,6 +420,15 @@ void Regulator_Callback(void *argument)
 
 
   /* USER CODE END Regulator_Callback */
+}
+
+/*!
+ * Timer for tracking position
+ * @param argument
+ */
+void Track_Callback(void *argument)
+{
+
 }
 
 /* Private application code --------------------------------------------------*/
