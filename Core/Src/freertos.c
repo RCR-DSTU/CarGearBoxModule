@@ -65,19 +65,12 @@ typedef struct {
 }PID;
 PID Regulator[2];
 
-#define POINTS_STACK_SIZE	5
 struct {
 	int8_t Current_flag;
 	bool Finish;
 	float Speed[2];
 	float Distance[2];
 }Transmission;
-
-typedef struct {
-
-}pathPoint;
-pathPoint Points[POINTS_STACK_SIZE];
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -151,6 +144,14 @@ const osSemaphoreAttr_t xRestartSemaphore_attributes = {
   .name = "xRestartSemaphore",
 };
 
+#if(TEST == 1)
+osThreadId_t xTestHandle;
+const osThreadAttr_t xTest_attributes = {
+		.name = "xTest",
+		.stack_size = 128 * 4,
+		.priority = (osPriority_t) osPriorityNormal,
+};
+#endif
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 void PID_init(void);
@@ -206,14 +207,17 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the timer(s) */
   /* creation of xRegulator */
+#if(TEST == 0)
   xRegulatorHandle = osTimerNew(Regulator_Callback, osTimerPeriodic, NULL, &xRegulator_attributes);
   xTrackRegulatorHandle = osTimerNew(Track_Callback, osTimerPeriodic, NULL, &xTrack_attributes);
+#endif
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the queue(s) */
   /* creation of xRestartSemaphore */
+
   xRestartHandle = osSemaphoreNew(1, 1, &xRestartSemaphore_attributes);
 
   /* creation of xTransmissionQueue */
@@ -232,13 +236,14 @@ void MX_FREERTOS_Init(void) {
   /* creation of xTransmission */
 #if(TEST == 0)
   xTransmissionHandle = osThreadNew(TransmissionTask, NULL, &xTransmission_attributes);
-  osThreadSuspend(xTransmissionHandle);
-#endif
+#endif /*TEST*/
   /* creation of xRestart */
 #if(TEST == 0)
   xRestartHandle = osThreadNew(RestartTask, NULL, &xRestart_attributes);
-  osThreadSuspend(xRestartHandle);
-#endif
+#endif /*TEST*/
+#if (TEST == 1)
+  xTestHandle = osThreadNew(TestTask, NULL, &xTest_attributes);
+#endif /*TEST*/
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -248,6 +253,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_EVENTS */
 
 }
+
 
 /* USER CODE BEGIN Header_uROSTask */
 /**
@@ -266,7 +272,8 @@ void   microros_deallocate(void * pointer, void * state);
 void * microros_reallocate(void * pointer, size_t size, void * state);
 void * microros_zero_allocate(size_t number_of_elements, size_t size_of_element, void * state);
 
-void ConstructAnswer(char* message, uint32_t millisec, uint32_t nanosec) {
+void ConstructAnswer(char* message, uint32_t millisec, uint32_t nanosec)
+{
 	msgDiagnostic.header.stamp.nanosec = nanosec;
 	msgDiagnostic.header.stamp.sec = millisec / 1000;
 	msgDiagnostic.header.frame_id.data = message;
@@ -276,7 +283,8 @@ void ConstructAnswer(char* message, uint32_t millisec, uint32_t nanosec) {
  * subscription callback function
  * @param msgin new value data from TransmissionPosition subscriber
  */
-void subscription_callback(const void* msgin) {
+void subscription_callback(const void* msgin)
+{
 	const std_msgs__msg__Int8 * msg = (std_msgs__msg__Int8 *)msgin;
 	msgTransmission = *msg;
 	printf("Received msg from topic \r\n");
@@ -379,6 +387,19 @@ void uROSTask(void *argument)
   /* USER CODE END uROSTask */
 }
 
+#if(TEST == 1)
+/* USER CODE BEGIN Header_TestTask */
+void TestTask(void *argument)
+{
+	std_msgs__msg__Int8 testValue;
+	for(;;)
+	{
+
+	}
+	osThreadExit();
+}
+/* USER CODE END Header_TestTask */
+#endif
 /* USER CODE BEGIN Header_TransmissionTask */
 /**
 * @brief Function implementing the xTransmission thread.
@@ -569,6 +590,31 @@ void SetVoltage(uint8_t Engine, float Duty)
 				  TIM2->CCR2 = ((int32_t)(TIM2->ARR + (Duty * TIM2->ARR)));
 			}
 		}
+}
+
+void MoveTo(int direction, float Speed)
+{
+    switch(direction)
+    {
+    case 0: Regulator[0].Target = 0.0; Regulator[1].Target = 0.0;
+    break;
+
+    // right
+    case 1: Regulator[0].Target = Speed; Regulator[1].Target = Speed;
+    break;
+
+    // down
+    case 2: Regulator[0].Target = Speed; Regulator[1].Target = -Speed;
+    break;
+
+    // up
+    case 3: Regulator[0].Target = -Speed; Regulator[1].Target = Speed;
+    break;
+
+    // left
+    case 4: Regulator[0].Target = -Speed; Regulator[1].Target = -Speed;
+    break;
+    }
 }
 
 /*!
