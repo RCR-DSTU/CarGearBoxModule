@@ -1,21 +1,36 @@
 #pragma once
 #include "main.h"
 
-#define POINTS_STACK_SIZE	3
+#define POINTS_STACK_SIZE	7
+bool MoveFlag;
 
 typedef struct {
-	float Point[2];
-	uint8_t Direction;
-	float Speed[2];
+	uint8_t LocalFlag;
+	float PointX;
+	float PointY;
+	float (* PointVelocity);
 }pathPoint;
-pathPoint Points[POINTS_STACK_SIZE];
 
+typedef struct {
+	bool PathMoveFlag;
+	uint8_t CurPointFlag;
+	uint8_t CurDirection;
+	uint8_t TargetPointFlag;
+	float CurPoint_X;
+	float CurPoint_Y;
+	float LengthTrace;
+	float (* TraceVelocity);
+	float MiddleTraceError;
+	pathPoint Points[POINTS_STACK_SIZE];
+}Path;
 
-void AddPoint(pathPoint *point);
+Path PathPlan;
 
-void RemovePoint();
+void AddPointInFront(pathPoint *points, float *newPoint, uint8_t type, uint8_t *lastPoint);
 
-void CreatePathPlan();
+void AddPointInBack(pathPoint *points, float *newPoint, uint8_t type, uint8_t *lastPoint);
 
-void ClearPathPlan();
+void RemovePoint(pathPoint *pointsArray, uint8_t *lastPoint);
+
+void CreatePath(pathPoint *next_point, pathPoint *cur_point, Path *output);
 

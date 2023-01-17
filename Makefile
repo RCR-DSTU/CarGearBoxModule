@@ -131,6 +131,8 @@ AS_INCLUDES =  \
 # C includes
 C_INCLUDES =  \
 -ICore/Inc \
+-ICore/transmission/inc \
+-ICore/pathPlanning/inc \
 -IDrivers/STM32F4xx_HAL_Driver/Inc \
 -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \

@@ -22,7 +22,7 @@
 #include "task.h"
 #include "main.h"
 #include "cmsis_os.h"
-
+#include "transmission.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <rcl/rcl.h>
@@ -41,36 +41,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct {
-	float P_k;
-	float I_k;
-	float D_k;
-	float Current;
-	float Target;
-	float Error;
-	float Sum_error;
-	float Prev_error;
-	char  PID_on;
-	char  PID_finish;
-	float Max_sum_error;
-	float Error_end;
-	float Output;
-	float PID_output_end;
-	float PID_error_end;
-	float Min_output;
-	float Max_output;
-    void (*coordinator)(void);
-    void  (*performer)(uint8_t engine, float output);
-    float *Goal;
-}PID;
-PID Regulator[2];
-
-struct {
-	int8_t Current_flag;
-	bool Finish;
-	float Speed[2];
-	float Distance[2];
-}Transmission;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -154,11 +124,7 @@ const osThreadAttr_t xTest_attributes = {
 #endif
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-void PID_init(void);
-void PID_calc(uint8_t Reg);
-float goal;
-void SetVoltage(uint8_t Engine, float Duty);
-void ParseEncoderData(void);
+
 /* USER CODE END FunctionPrototypes */
 
 void uROSTask(void *argument);
@@ -563,59 +529,7 @@ void PID_calc(uint8_t Reg) {
     Regulator[Reg].performer(Reg, Regulator[Reg].Output);
 }
 
-/*!
- * Set voltage on engines
- * @param Engine number of engine
- * @param Duty duty value of timer [0.0 ... 1.0]
- */
-void SetVoltage(uint8_t Engine, float Duty)
-{
-	if(Duty > 1.0) Duty = 1.0;
-	if(Duty < -1.0) Duty = -1.0;
-		if(Engine == 1) {
-			if(Duty >= 0.0) {
-				  HAL_GPIO_WritePin(DIR1_PIN_GPIO_Port, DIR1_PIN_Pin, GPIO_PIN_RESET);
-				  TIM2->CCR1 = ((int32_t) (Duty * TIM2->ARR));
-			} else {
-				  HAL_GPIO_WritePin(DIR1_PIN_GPIO_Port, DIR1_PIN_Pin, GPIO_PIN_SET);
-				  TIM2->CCR1 = ((int32_t)(TIM2->ARR + (Duty * TIM2->ARR)));
-			}
-		}
-		if(Engine == 2) {
-			if(Duty >= 0.0) {
-				  HAL_GPIO_WritePin(DIR2_PIN_GPIO_Port, DIR2_PIN_Pin, GPIO_PIN_RESET);
-				  TIM2->CCR2 = ((int32_t) (Duty * TIM2->ARR));
-			} else {
-				  HAL_GPIO_WritePin(DIR2_PIN_GPIO_Port, DIR2_PIN_Pin, GPIO_PIN_SET);
-				  TIM2->CCR2 = ((int32_t)(TIM2->ARR + (Duty * TIM2->ARR)));
-			}
-		}
-}
 
-void MoveTo(int direction, float Speed)
-{
-    switch(direction)
-    {
-    case 0: Regulator[0].Target = 0.0; Regulator[1].Target = 0.0;
-    break;
-
-    // right
-    case 1: Regulator[0].Target = Speed; Regulator[1].Target = Speed;
-    break;
-
-    // down
-    case 2: Regulator[0].Target = Speed; Regulator[1].Target = -Speed;
-    break;
-
-    // up
-    case 3: Regulator[0].Target = -Speed; Regulator[1].Target = Speed;
-    break;
-
-    // left
-    case 4: Regulator[0].Target = -Speed; Regulator[1].Target = -Speed;
-    break;
-    }
-}
 
 /*!
  * Get encoder data and clear registers
