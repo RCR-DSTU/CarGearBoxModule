@@ -1,23 +1,26 @@
 #include "pathCoordination.h"
 
+
+bool MoveFlag;
+Path PathPlan;
 /*!
  * VelocityMap[3] - { VerySlow, Slow, Middle, Fast, VeryFast }
  * [Value] m/s
  */
-static const float VelocityMap[5] = {0.1, 0.3, 0.5, 0.7, 1.0};
+static float VelocityMap[5] = {0.1, 0.3, 0.5, 0.7, 1.0};
 static const float DistMap[5] = {0.15, 0.3, 0.45, 0.6, 0.8};
 /*!
  *
  * @param pointsArray
  * @param lastPoint
  */
-void RemovePoint(pathPoint *pointsArray, uint8_t *lastPoint)
+void RemovePoint(pathPoint *points, uint8_t *lastPoint)
 {
 	int8_t i, j;
 	for(i = 0; i < *lastPoint; i++)
 	{
 		for(j = 0; j < sizeof(pathPoint); j++)
-			*(((char *)(&Points[i])) + j) = *(((char *)(&Points[i+1])) + j);
+			*(((char *)(&points[i])) + j) = *(((char *)(&points[i+1])) + j);
 	}
 	if(*lastPoint > 0)
 	{
@@ -47,8 +50,8 @@ void AddPointInFront(pathPoint *points, float *newPoint,
 		}
 	}
 	points[0].PointVelocity = &VelocityMap[type];
-	points[0].PointX = point->PointX;
-	points[0].PointY = point->PointY;
+	points[0].PointX = *newPoint;
+	points[0].PointY = *(newPoint + 1);
 
 	(*lastPoint)++;
 }
@@ -74,8 +77,8 @@ void AddPointInBack(pathPoint *points, float *newPoint,
 	}
 
 	points[POINTS_STACK_SIZE - 1].PointVelocity = &VelocityMap[type];
-	points[POINTS_STACK_SIZE - 1].PointX = point->PointX;
-	points[POINTS_STACK_SIZE - 1].PointY = point->PointY;
+	points[POINTS_STACK_SIZE - 1].PointX = *newPoint;
+	points[POINTS_STACK_SIZE - 1].PointY = *(newPoint + 1);
 
 	(*lastPoint)--;
 }
@@ -112,7 +115,7 @@ void CreatePath(pathPoint *next_point, pathPoint *cur_point, Path *output)
 
 	if(output->LengthTrace == 0)
 	{
-		output->TraceVelocity = 0.0;
+		output->TraceVelocity = 0;
 	}
 	else output->TraceVelocity = &(*next_point->PointVelocity);
 }

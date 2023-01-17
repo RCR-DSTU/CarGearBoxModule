@@ -37,6 +37,9 @@ BUILD_DIR = build
 # C sources
 C_SOURCES =  \
 Core/Src/main.c \
+Core/regulator/src/regulator.c \
+Core/pathPlanning/src/pathCoordination.c \
+Core/transmission/src/transmission.c \
 Core/Src/gpio.c \
 Core/Src/freertos.c \
 Core/Src/dma.c \
@@ -72,7 +75,7 @@ Middlewares/Third_Party/FreeRTOS/Source/timers.c \
 Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c \
 Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c \
 Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c \
-Core/Src/tim.c
+Core/Src/tim.c 
 
 # ASM sources
 ASM_SOURCES =  \
@@ -133,13 +136,15 @@ C_INCLUDES =  \
 -ICore/Inc \
 -ICore/transmission/inc \
 -ICore/pathPlanning/inc \
+-ICore/regulator/inc \
 -IDrivers/STM32F4xx_HAL_Driver/Inc \
 -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 \
 -IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
--IDrivers/CMSIS/Include
+-IDrivers/CMSIS/Include 
+
 
 
 # compile gcc flags

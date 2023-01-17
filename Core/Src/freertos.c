@@ -23,6 +23,8 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "transmission.h"
+#include "pathCoordination.h"
+#include "regulator.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <rcl/rcl.h>
@@ -38,7 +40,7 @@
 
 #include "usart.h"
 /* USER CODE END Includes */
-
+PID Regulator[2];
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 /* USER CODE END PTD */
@@ -53,7 +55,6 @@ const uint8_t attempts = 5;
 #define uROS_delayMs				100
 #define Regulator_periodMs		    20
 #define Tracking_periodMs			40
-uint16_t EncoderData[2];
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -198,7 +199,9 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* creation of xuROS */
+#if(TEST == 0)
   xuROSHandle = osThreadNew(uROSTask, NULL, &xuROS_attributes);
+#endif /*TEST*/
   /* creation of xTransmission */
 #if(TEST == 0)
   xTransmissionHandle = osThreadNew(TransmissionTask, NULL, &xTransmission_attributes);
@@ -382,11 +385,11 @@ void TransmissionTask(void *argument)
   {
 	  osMessageQueueGet(xTransmissionQueueHandle, &target, NULL, portMAX_DELAY);
 
-	  if(*target != Transmission.Current_flag)
-	  {
-		  /* Start track manager*/
-		  osTimerStart(xTrackRegulatorHandle,Tracking_periodMs / portTICK_RATE_MS);
-	  }
+//	  if(*target != Transmission.Current_flag)
+//	  {
+//		  /* Start track manager*/
+//		  osTimerStart(xTrackRegulatorHandle,Tracking_periodMs / portTICK_RATE_MS);
+//	  }
   }
   osThreadExit();
   /* USER CODE END TransmissionTask */
@@ -452,95 +455,10 @@ void Track_Callback(void *argument)
 {
 	/* USER CODE BEGIN Track_Callback */
 
-
-
-
 	/* USER CODE END Track_Callback */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-
-/*!
- * Initialization PID parameters
- */
-void PID_init(void)
-{
-	Regulator[0].P_k = 0.130;
-	Regulator[0].I_k = 0.270;
-	Regulator[0].D_k = 0.15;
-	Regulator[1].P_k = 0.120;
-	Regulator[1].I_k = 0.290;
-	Regulator[1].D_k = 0.15;
-
-	for(int i = 0; i < 1; i++)
-	{
-		Regulator[i].Error = 0.0;
-		Regulator[i].Sum_error = 0.0;
-		Regulator[i].Prev_error = 0.0;
-		Regulator[i].Current = 0.0;
-		Regulator[i].Target = 0.0;
-		Regulator[i].Output = 0.0;
-		Regulator[i].Min_output = 0.01;
-		Regulator[i].Max_output = 1.0;
-		Regulator[i].coordinator = &ParseEncoderData;
-		Regulator[i].performer = &SetVoltage;
-	}
-}
-
-void PID_calc(uint8_t Reg) {
-    Regulator[Reg].Target = *Regulator[Reg].Goal;
-    (void)Regulator[Reg].coordinator();
-    Regulator[Reg].Current = EncoderData[Reg];
-    Regulator[Reg].Error = Regulator[Reg].Target - Regulator[Reg].Current;
-    Regulator[Reg].Sum_error += Regulator[Reg].Error;
-
-    if (Regulator[Reg].Sum_error > Regulator[Reg].Max_sum_error)
-    	Regulator[Reg].Sum_error = Regulator[Reg].Max_sum_error;
-    if (Regulator[Reg].Sum_error < -Regulator[Reg].Max_sum_error)
-    	Regulator[Reg].Sum_error = -Regulator[Reg].Max_sum_error;
-
-    if (Regulator[Reg].PID_on)
-    {
-        Regulator[Reg].Output = ((float)(Regulator[Reg].P_k * Regulator[Reg].Error)+(Regulator[Reg].I_k * Regulator[Reg].Sum_error)+
-                               (Regulator[Reg].D_k * (Regulator[Reg].Prev_error - Regulator[Reg].Error)));
-
-        if (Regulator[Reg].Output > Regulator[Reg].Max_output)
-        	Regulator[Reg].Output = Regulator[Reg].Max_output;
-        else if (Regulator[Reg].Output < -Regulator[Reg].Max_output)
-        	Regulator[Reg].Output = -Regulator[Reg].Max_output;
-
-        if (Regulator[Reg].Output < Regulator[Reg].Min_output && Regulator[Reg].Output > -Regulator[Reg].Min_output)
-        	Regulator[Reg].Output = 0;
-
-        if ((Regulator[Reg].Current <= Regulator[Reg].PID_output_end) &&
-            (Regulator[Reg].Current >= -Regulator[Reg].PID_output_end) &&
-            (Regulator[Reg].Error <= Regulator[Reg].PID_error_end) && (Regulator[Reg].Error >= -Regulator[Reg].PID_error_end))
-        	Regulator[Reg].PID_finish = 1;
-        else
-        	Regulator[Reg].PID_finish = 0;
-    }
-    else
-    {
-    	Regulator[Reg].Output = 0;
-    	Regulator[Reg].PID_finish = 0;
-    }
-    Regulator[Reg].Prev_error = Regulator[Reg].Error;
-    Regulator[Reg].performer(Reg, Regulator[Reg].Output);
-}
-
-
-
-/*!
- * Get encoder data and clear registers
- */
-void ParseEncoderData(void)
-{
-	EncoderData[0] = TIM3->CNT;
-	EncoderData[1] = TIM4->CNT;
-	TIM3->CNT = 0;
-	TIM4->CNT = 0;
-}
-
 /* USER CODE END Application */
 

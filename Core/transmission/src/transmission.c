@@ -1,4 +1,3 @@
-#include "main.h"
 #include "transmission.h"
 
 /*!
@@ -30,6 +29,11 @@ void SetVoltage(uint8_t Engine, float Duty)
 		}
 }
 
+/*!
+ *
+ * @param direction
+ * @param Speed
+ */
 void MoveTo(int direction, float Speed)
 {
     switch(direction)
@@ -54,3 +58,16 @@ void MoveTo(int direction, float Speed)
     break;
     }
 }
+
+/*!
+ *
+ * @param flag
+ */
+void CreateNewJob(uint8_t flag)
+{
+
+
+
+
+}
+
