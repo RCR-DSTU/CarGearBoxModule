@@ -58,16 +58,3 @@ void MoveTo(int direction, float Speed)
     break;
     }
 }
-
-/*!
- *
- * @param flag
- */
-void CreateNewJob(uint8_t flag)
-{
-
-
-
-
-}
-

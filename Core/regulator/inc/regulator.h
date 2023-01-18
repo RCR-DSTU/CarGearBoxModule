@@ -33,4 +33,8 @@ void ParseEncoderData(void);
 
 void PID_init(void);
 
+void PID_stop(void);
+
+void PID_start(void);
+
 void PID_calc(uint8_t Reg);

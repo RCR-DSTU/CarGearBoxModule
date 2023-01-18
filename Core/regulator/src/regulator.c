@@ -1,7 +1,7 @@
 #include "regulator.h"
 
 uint16_t EncoderData[2];
-
+Path PathPlan;
 /*!
  * Get encoder data and clear registers
  */
@@ -11,6 +11,13 @@ void ParseEncoderData(void)
 	EncoderData[1] = TIM4->CNT;
 	TIM3->CNT = 0;
 	TIM4->CNT = 0;
+
+	Calculate_position(&(*EncoderData));
+}
+
+void Calculate_position(uint16_t *Enc)
+{
+
 }
 
 
@@ -38,6 +45,26 @@ void PID_init(void)
 		Regulator[i].Max_output = 1.0;
 		Regulator[i].coordinator = &ParseEncoderData;
 		Regulator[i].performer = &SetVoltage;
+	}
+}
+
+void PID_stop(void)
+{
+	for(int i = 0; i < 1; i++)
+	{
+		*Regulator[i].Goal = 0.0;
+		Regulator[i].Target = 0.0;
+		Regulator[i].PID_on = 0;
+		Regulator[i].Error = 0.0;
+		Regulator[i].Sum_error = 0.0;
+	}
+}
+
+void PID_start(void)
+{
+	for(int i = 0; i < 1; i++)
+	{
+		Regulator[i].PID_on = 1;
 	}
 }
 

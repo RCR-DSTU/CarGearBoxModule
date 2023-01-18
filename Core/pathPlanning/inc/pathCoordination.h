@@ -1,5 +1,6 @@
 #pragma once
 #include "main.h"
+#include "regulator.h"
 
 #define POINTS_STACK_SIZE	7
 
@@ -15,15 +16,15 @@ typedef struct {
 	uint8_t CurPointFlag;
 	uint8_t CurDirection;
 	uint8_t TargetPointFlag;
-	float CurPoint_X;
-	float CurPoint_Y;
+	float CurPoint[2];
+	float TargPoint[2];
 	float LengthTrace;
 	float (* TraceVelocity);
 	float MiddleTraceError;
 	pathPoint Points[POINTS_STACK_SIZE];
 }Path;
 
-
+extern Path PathPlan;
 
 void AddPointInFront(pathPoint *points, float *newPoint, uint8_t type, uint8_t *lastPoint);
 

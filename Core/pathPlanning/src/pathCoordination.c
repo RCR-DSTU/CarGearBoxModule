@@ -1,14 +1,20 @@
 #include "pathCoordination.h"
 
+/*!
+ * Measurement table of transmission
+ * 0 - N flag
+ * 1 - R flag
+ * 2 - F1 flag
+ */
+static float const MEASUREMENT_X[3] = {0, 0.25, -0.25};
+static float const MEASUREMENT_Y[3] = {0, 0.25, -0.25};
 
-bool MoveFlag;
 Path PathPlan;
 /*!
  * VelocityMap[3] - { VerySlow, Slow, Middle, Fast, VeryFast }
  * [Value] m/s
  */
 static float VelocityMap[5] = {0.1, 0.3, 0.5, 0.7, 1.0};
-static const float DistMap[5] = {0.15, 0.3, 0.45, 0.6, 0.8};
 /*!
  *
  * @param pointsArray
@@ -91,32 +97,41 @@ void AddPointInBack(pathPoint *points, float *newPoint,
  */
 void CreatePath(pathPoint *next_point, pathPoint *cur_point, Path *output)
 {
-	float delta_x;
-	float delta_y;
 
-	delta_x = next_point->PointX - cur_point->PointX;
-	delta_y = next_point->PointY - cur_point->PointY;
 
-	output->CurPoint_X = cur_point->PointX;
-	output->CurPoint_Y = cur_point->PointY;
 
-	if(delta_x == 0.0 && delta_y == 0.0)
-	{
-		output->PathMoveFlag = false;
-	}
-	else if(delta_x > 0.0) output->CurDirection = 1;
-	else if(delta_x < 0.0) output->CurDirection = 2;
-	else if(delta_y > 0.0) output->CurDirection = 3;
-	else if(delta_y < 0.0) output->CurDirection = 4;
-	else output->CurDirection = 0;
 
-	output->LengthTrace = (delta_x != 0) ? delta_x :
-						  (delta_y != 0) ? delta_y : 0.0;
-
-	if(output->LengthTrace == 0)
-	{
-		output->TraceVelocity = 0;
-	}
-	else output->TraceVelocity = &(*next_point->PointVelocity);
 }
 
+/*!
+ *
+ * @param output
+ */
+void ZeroPlanning(Path *output)
+{
+	output->PathMoveFlag = false;
+	output->TargPoint[0] = 0.0;
+	output->TargPoint[1] = 0.0;
+
+	float delta[2] = { 0.0, 0.0 };
+
+	delta[0] = output->CurPoint[0] - output->TargPoint[0];
+	delta[1] = output->CurPoint[1] - output->TargPoint[1];
+
+	/* Clearing points table */
+	for(int i = 0; sizeof(output->Points); i++)
+		*((char *)(&output->Points[i])) = 0;
+
+	if(delta[1] != 0.0)
+	{
+		float point1[2] = { 0.0, delta[1] };
+		AddPointInFront(&(*output->Points), &(*point1), 3, 0);
+	}
+	if(delta[0] != 0.0)
+	{
+		float point2[2] = { delta[0], 0.0 };
+		AddPointInFront(&(*output->Points), &(*point1), 3, 1);
+	}
+
+	output->PathMoveFlag = true;
+}

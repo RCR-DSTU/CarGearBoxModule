@@ -47,7 +47,7 @@ PID Regulator[2];
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define TEST	0
+#define TEST	1
 const char *subscriber_name = "TransmissionPosition";
 const char *publisher_name = "CarStateResponse";
 const int timeout_ms = 250;
@@ -131,6 +131,7 @@ const osThreadAttr_t xTest_attributes = {
 void uROSTask(void *argument);
 void TransmissionTask(void *argument);
 void RestartTask(void *argument);
+void TestTask(void *argument);
 void Regulator_Callback(void *argument);
 void Track_Callback(void *argument);
 
@@ -174,10 +175,8 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the timer(s) */
   /* creation of xRegulator */
-#if(TEST == 0)
   xRegulatorHandle = osTimerNew(Regulator_Callback, osTimerPeriodic, NULL, &xRegulator_attributes);
   xTrackRegulatorHandle = osTimerNew(Track_Callback, osTimerPeriodic, NULL, &xTrack_attributes);
-#endif
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
@@ -360,9 +359,11 @@ void uROSTask(void *argument)
 /* USER CODE BEGIN Header_TestTask */
 void TestTask(void *argument)
 {
-	std_msgs__msg__Int8 testValue;
+	PID_init();
 	for(;;)
 	{
+
+
 
 	}
 	osThreadExit();
