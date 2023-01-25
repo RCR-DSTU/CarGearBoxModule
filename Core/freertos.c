@@ -366,7 +366,7 @@ void TestTask(void *argument)
 	PID_start();
 	for(;;)
 	{
-		MoveTo(2,3.0);
+		MoveTo(1, 0.3);
 		osDelay(500 / portTICK_RATE_MS);
 		__NOP();
 

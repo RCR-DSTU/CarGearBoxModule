@@ -94,26 +94,25 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
-  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
+  // Clearing high polarity (bad settings or bug)
+  TIM2->CCER &= (0xBB99);
 
+//  TIM3->SMCR |= (0xF << 8);
+//  TIM4->SMCR |= (0xF << 8);
+//  TIM4->CR1 |= 0x1;
+//  TIM3->CR1 |= 0x1;
+
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+  HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
+  HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
   /* USER CODE END 2 */
 
   /* Init scheduler */
   osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
 
-  /*!
-   * Start engines
-   */
-  HAL_TIM_PWM_Start(&htim2, 1);
-  HAL_TIM_PWM_Start(&htim2, 2);
-
-  /*!
-   * Start encoders
-   */
-  HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
-  HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
   /* Start scheduler */
   osKernelStart();
 

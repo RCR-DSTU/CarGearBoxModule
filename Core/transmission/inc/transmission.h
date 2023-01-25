@@ -10,7 +10,10 @@ extern struct {
 	float Distance[2];
 }Transmission;
 
-extern float goal;
+extern float Transmit1_float;
+extern float Transmit2_float;
+
+void MoveTo(int direction, float Speed);
 
 void SetVoltage(uint8_t Engine, float Duty);
 

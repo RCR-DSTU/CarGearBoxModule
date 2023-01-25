@@ -28,9 +28,10 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
-#include <stdbool.h>
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -56,23 +57,25 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define F2_PIN_Pin GPIO_PIN_6
-#define F2_PIN_GPIO_Port GPIOA
-#define DIR1_PIN_Pin GPIO_PIN_7
-#define DIR1_PIN_GPIO_Port GPIOA
-#define DIR2_PIN_Pin GPIO_PIN_0
-#define DIR2_PIN_GPIO_Port GPIOB
-#define N_PIN_Pin GPIO_PIN_12
-#define N_PIN_GPIO_Port GPIOB
-#define R_PIN_Pin GPIO_PIN_13
-#define R_PIN_GPIO_Port GPIOB
-#define F1_PIN_Pin GPIO_PIN_14
-#define F1_PIN_GPIO_Port GPIOB
-#define S1_PIN_Pin GPIO_PIN_15
-#define S1_PIN_GPIO_Port GPIOB
-#define S2_PIN_Pin GPIO_PIN_12
-#define S2_PIN_GPIO_Port GPIOA
+#define F2_Pin GPIO_PIN_6
+#define F2_GPIO_Port GPIOA
+#define DIR1_Pin GPIO_PIN_7
+#define DIR1_GPIO_Port GPIOA
+#define DIR2_Pin GPIO_PIN_0
+#define DIR2_GPIO_Port GPIOB
+#define N_Pin GPIO_PIN_12
+#define N_GPIO_Port GPIOB
+#define R_Pin GPIO_PIN_13
+#define R_GPIO_Port GPIOB
+#define F1_Pin GPIO_PIN_14
+#define F1_GPIO_Port GPIOB
+#define S1_Pin GPIO_PIN_15
+#define S1_GPIO_Port GPIOB
+#define S2_Pin GPIO_PIN_12
+#define S2_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
+
+/* USER CODE END Private defines */
 
 #ifdef __cplusplus
 }

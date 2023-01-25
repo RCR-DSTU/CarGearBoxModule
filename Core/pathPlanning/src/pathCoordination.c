@@ -6,8 +6,8 @@
  * 1 - R flag
  * 2 - F1 flag
  */
-static float const MEASUREMENT_X[3] = {0, 0.25, -0.25};
-static float const MEASUREMENT_Y[3] = {0, 0.25, -0.25};
+//static float const MEASUREMENT_X[3] = {0, 0.25, -0.25};
+//static float const MEASUREMENT_Y[3] = {0, 0.25, -0.25};
 
 Path PathPlan;
 /*!
@@ -110,28 +110,28 @@ void CreatePath(pathPoint *next_point, pathPoint *cur_point, Path *output)
 void ZeroPlanning(Path *output)
 {
 	output->PathMoveFlag = false;
-	output->TargPoint[0] = 0.0;
-	output->TargPoint[1] = 0.0;
-
-	float delta[2] = { 0.0, 0.0 };
-
-	delta[0] = output->CurPoint[0] - output->TargPoint[0];
-	delta[1] = output->CurPoint[1] - output->TargPoint[1];
-
-	/* Clearing points table */
-	for(int i = 0; sizeof(output->Points); i++)
-		*((char *)(&output->Points[i])) = 0;
-
-	if(delta[1] != 0.0)
-	{
-		float point1[2] = { 0.0, delta[1] };
-		AddPointInFront(&(*output->Points), &(*point1), 3, 0);
-	}
-	if(delta[0] != 0.0)
-	{
-		float point2[2] = { delta[0], 0.0 };
-		AddPointInFront(&(*output->Points), &(*point1), 3, 1);
-	}
-
-	output->PathMoveFlag = true;
+//	output->TargPoint[0] = 0.0;
+//	output->TargPoint[1] = 0.0;
+//
+//	float delta[2] = { 0.0, 0.0 };
+//
+//	delta[0] = output->CurPoint[0] - output->TargPoint[0];
+//	delta[1] = output->CurPoint[1] - output->TargPoint[1];
+//
+//	/* Clearing points table */
+//	for(int i = 0; sizeof(output->Points); i++)
+//		*((char *)(&output->Points[i])) = 0;
+//
+//	if(delta[1] != 0.0)
+//	{
+//		float point1[2] = { 0.0, delta[1] };
+//		//AddPointInFront(&(*output->Points), &(*point1), 3, 0);
+//	}
+//	if(delta[0] != 0.0)
+//	{
+//		float point2[2] = { delta[0], 0.0 };
+//		//AddPointInFront(&(*output->Points), &(*point1), 3, 1);
+//	}
+//
+//	output->PathMoveFlag = true;
 }
