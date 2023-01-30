@@ -35,27 +35,33 @@ void SetVoltage(uint8_t Engine, float Duty)
  * @param direction
  * @param Speed
  */
-void MoveTo(int direction, float Speed)
+static void MoveTo(int direction, float Speed)
 {
     switch(direction)
     {
-    case 0: Transmit1_float = 0.0; Transmit2_float = 0.0;
+    case 0: Transmission.Transmit_float[0] = 0.0; Transmission.Transmit_float[1] = 0.0;
     break;
 
     // right
-    case 1: Transmit1_float = Speed; Transmit2_float = Speed;
+    case 1: Transmission.Transmit_float[0] = Speed; Transmission.Transmit_float[1] = Speed;
     break;
 
     // down
-    case 2:  Transmit1_float = Speed; Transmit2_float = -Speed;
+    case 2: Transmission.Transmit_float[0] = Speed; Transmission.Transmit_float[1] = -Speed;
     break;
 
     // up
-    case 3: Transmit1_float = -Speed; Transmit2_float = Speed;
+    case 3: Transmission.Transmit_float[0] = -Speed; Transmission.Transmit_float[1] = Speed;
     break;
 
     // left
-    case 4: Transmit1_float = -Speed; Transmit2_float = -Speed;
+    case 4: Transmission.Transmit_float[0] = -Speed; Transmission.Transmit_float[1] = -Speed;
     break;
     }
 }
+
+
+void MoveDist()
+{
+}
+

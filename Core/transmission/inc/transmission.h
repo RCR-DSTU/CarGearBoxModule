@@ -3,17 +3,17 @@
 #include "regulator.h"
 #include "pathCoordination.h"
 
-extern struct {
+typedef struct {
 	int8_t Current_flag;
+	float Current_Dist;
+	float Current_Dir;
 	bool Finish;
-	float Speed[2];
-	float Distance[2];
-}Transmission;
+	float Speed;
+	float Center[2];
+	float Transmit_float[2];
+}Transmit;
 
-extern float Transmit1_float;
-extern float Transmit2_float;
-
-void MoveTo(int direction, float Speed);
+extern Transmit Transmission;
 
 void SetVoltage(uint8_t Engine, float Duty);
 

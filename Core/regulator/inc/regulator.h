@@ -22,10 +22,11 @@ typedef struct {
 	float PID_error_end;
 	float Min_output;
 	float Max_output;
+	float Dist;
     void  (*performer)(uint8_t engine, float output);
 }PID;
 
-extern PID Regulator[2];
+extern PID Regulator[3];
 
 void ParseEncoderData(void);
 

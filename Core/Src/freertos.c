@@ -40,7 +40,7 @@
 
 #include "usart.h"
 /* USER CODE END Includes */
-PID Regulator[2];
+PID Regulator[3];
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 /* USER CODE END PTD */
@@ -366,7 +366,6 @@ void TestTask(void *argument)
 	PID_start();
 	for(;;)
 	{
-		MoveTo(2,3.0);
 		osDelay(500 / portTICK_RATE_MS);
 		__NOP();
 
