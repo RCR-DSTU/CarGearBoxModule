@@ -5,11 +5,11 @@
 
 typedef struct {
 	int8_t Current_flag;
-	float Current_Dist;
-	float Current_Dir;
-	bool Finish;
-	float Speed;
-	float Center[2];
+	float Current_Dist[2];
+	uint8_t Current_Dir;
+	char *Finish;
+	float X_pos;
+	float Y_pos;
 	float Transmit_float[2];
 }Transmit;
 
@@ -19,3 +19,4 @@ void SetVoltage(uint8_t Engine, float Duty);
 
 void ParseEncoderData(void);
 
+void MoveTo(uint8_t direction, float Speed);

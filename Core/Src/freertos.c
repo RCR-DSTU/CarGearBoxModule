@@ -176,8 +176,7 @@ void MX_FREERTOS_Init(void) {
   /* Create the timer(s) */
   /* creation of xRegulator */
   xRegulatorHandle = osTimerNew(Regulator_Callback, osTimerPeriodic, NULL, &xRegulator_attributes);
-
-  //xTrackRegulatorHandle = osTimerNew(Track_Callback, osTimerPeriodic, NULL, &xTrack_attributes);
+  xTrackRegulatorHandle = osTimerNew(Track_Callback, osTimerPeriodic, NULL, &xTrack_attributes);
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
@@ -361,14 +360,16 @@ void uROSTask(void *argument)
 /* USER CODE BEGIN Header_TestTask */
 void TestTask(void *argument)
 {
-	PID_init();
 	osTimerStart(xRegulatorHandle, (Regulator_periodMs / portTICK_RATE_MS));
+	osTimerStart(xTrackRegulatorHandle, (Tracking_periodMs / portTICK_RATE_MS));
 	PID_start();
+	Start_track(3, 49.5);
+//	SetVoltage(0, -0.3);
+//	SetVoltage(1, 0.3);
 	for(;;)
 	{
-		osDelay(500 / portTICK_RATE_MS);
+		osDelay(1000 / portTICK_RATE_MS);
 		__NOP();
-
 	}
 	osThreadExit();
 }
@@ -448,8 +449,8 @@ void Regulator_Callback(void *argument)
 {
   /* USER CODE BEGIN Regulator_Callback */
 	ParseEncoderData();
-	PID_calc(0);
-	PID_calc(1);
+	if(Regulator[0].PID_on)	PID_calc(0);
+	if(Regulator[0].PID_on) PID_calc(1);
   /* USER CODE END Regulator_Callback */
 }
 
@@ -461,7 +462,8 @@ void Regulator_Callback(void *argument)
 void Track_Callback(void *argument)
 {
 	/* USER CODE BEGIN Track_Callback */
-
+	Tracking();
+	PID_calc(2);
 	/* USER CODE END Track_Callback */
 }
 

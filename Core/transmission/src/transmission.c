@@ -35,8 +35,15 @@ void SetVoltage(uint8_t Engine, float Duty)
  * @param direction
  * @param Speed
  */
-static void MoveTo(int direction, float Speed)
+void MoveTo(uint8_t direction, float Speed)
 {
+	// check for finish position
+	if(Regulator[2].PID_finish)
+	{
+		Stop_track();
+		return;
+	}
+
     switch(direction)
     {
     case 0: Transmission.Transmit_float[0] = 0.0; Transmission.Transmit_float[1] = 0.0;
@@ -59,9 +66,3 @@ static void MoveTo(int direction, float Speed)
     break;
     }
 }
-
-
-void MoveDist()
-{
-}
-

@@ -7,11 +7,7 @@ float Transmit1_float;
 float Transmit2_float;
 #define StepTransmission  0.00007
 #define Freq		0.02
-/*!
- * 0 - Core XY
- * 1 - Pinion-rail
- */
-#define KINEMATIC	0
+
 /*!
  * Get encoder data and clear registers
  */
@@ -26,15 +22,8 @@ void ParseEncoderData(void)
 	Regulator[0].Current = Dist[0] / Freq;
 	Regulator[1].Current = Dist[1] / Freq;
 
-	Regulator[0].Dist += -Dist[0];
-	Regulator[1].Dist += -Dist[1];
-
-#if(KINEMATIC == 0)
-
-	Transmission.Center[0] = (Regulator[0].Dist + Regulator[1].Dist) / 2;
-	Transmission.Center[1] = (Regulator[0].Dist - Regulator[1].Dist) / 2;
-
-#endif /* KINEMATIC__0 */
+	Regulator[0].Dist += (Dist[0] * 0.000635);
+	Regulator[1].Dist += (Dist[1] * 0.000635);
 
 	TIM3->CNT = 0;
 	TIM4->CNT = 0;
@@ -51,14 +40,10 @@ void PID_init(void)
 	Regulator[1].P_k = 0.120;
 	Regulator[1].I_k = 0.290;
 	Regulator[1].D_k = 0.15;
-	Transmission.Speed = 0.0;
+
 	Regulator[0].Target = &Transmission.Transmit_float[0];
 	Regulator[1].Target = &Transmission.Transmit_float[1];
-
-	// track speed
-	Regulator[2].Target = &Transmission.Speed;
-
-	for(int i = 0; i <= 2; i++)
+	for(int i = 0; i < 2; i++)
 	{
 		Regulator[i].Error = 0.0;
 		Regulator[i].Sum_error = 0.0;
@@ -68,12 +53,33 @@ void PID_init(void)
 		Regulator[i].Min_output = 0.01;
 		Regulator[i].Max_output = 1.0;
 		Regulator[i].Max_sum_error = 6.0;
-		if(i != 2) Regulator[i].performer = &SetVoltage;
-		Transmission.Center[i] = 0.0;
+		Regulator[i].performer = &SetVoltage;
 	}
-	Transmission.Finish = false;
-	Transmission.Current_flag = 0;
-	Transmission.Current_Dist = 0.0;
+}
+
+void Track_init(void)
+{
+	Regulator[2].P_k = 10.0;
+	Regulator[2].I_k = 14.0;
+	Regulator[2].D_k = 1.0;
+	Regulator[2].PID_finish = true;
+	Regulator[2].PID_error_end = 0.00008;
+
+	Regulator[2].Error = 0.0;
+	Regulator[2].Sum_error = 0.0;
+	Regulator[2].Prev_error = 0.0;
+	Regulator[2].Current = 0.0;
+	Regulator[2].Output = 0.0;
+	Regulator[2].Min_output = 2.5;
+	Regulator[2].Max_output = 9.0;
+	Regulator[2].Max_sum_error = 13.0;
+
+	Transmission.X_pos = 0.0;
+	Transmission.Y_pos = 0.0;
+	Transmission.Finish = &Regulator[2].PID_finish;
+	Transmission.Current_Dir = 0;
+
+	Regulator[2].performer = &MoveTo;
 }
 
 void PID_stop(void)
@@ -84,6 +90,7 @@ void PID_stop(void)
 		Regulator[i].PID_on = 0;
 		Regulator[i].Error = 0.0;
 		Regulator[i].Sum_error = 0.0;
+		Regulator[i].performer(i, 0.0);
 	}
 }
 
@@ -95,8 +102,23 @@ void PID_start(void)
 	Regulator[1].PID_on = 1;
 }
 
-void Start_track(void)
+void Start_track(uint8_t direction, float Dist)
 {
+	Transmission.Current_Dir = direction;
+	if(direction == 1 || direction == 4)
+	{
+		Transmission.Current_Dist[0] = Dist / 10000;
+		Regulator[2].PID_output_end = Dist / 10000;
+		Regulator[2].Target = &Transmission.Current_Dist[0];
+	}
+	if(direction == 2 || direction == 3)
+	{
+		Transmission.Current_Dist[1] = Dist / 10000;
+		Regulator[2].PID_output_end = Dist / 10000;
+		Regulator[2].Target = &Transmission.Current_Dist[1];
+	}
+
+	Regulator[2].PID_finish = 0;
 	Regulator[2].Current = 0.0;
 	Regulator[2].PID_on = 1;
 }
@@ -108,6 +130,8 @@ void Stop_track(void)
 	Regulator[2].Sum_error = 0.0;
 	Regulator[2].Prev_error = 0.0;
 	Regulator[2].PID_on = 0;
+
+	PID_stop();
 }
 
 void PID_calc(uint8_t Reg) {
@@ -140,6 +164,10 @@ void PID_calc(uint8_t Reg) {
         	Regulator[Reg].PID_finish = 0;
         Regulator[Reg].Prev_error = Regulator[Reg].Error;
         if(Reg != 2)  Regulator[Reg].performer(Reg, Regulator[Reg].Output);
+        else
+        {
+        	Regulator[Reg].performer(Transmission.Current_Dir, Regulator[Reg].Output);
+        }
     }
     else
     {

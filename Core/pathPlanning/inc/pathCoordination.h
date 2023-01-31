@@ -34,3 +34,4 @@ void RemovePoint(pathPoint *pointsArray, uint8_t *lastPoint);
 
 void CreatePath(pathPoint *next_point, pathPoint *cur_point, Path *output);
 
+void Tracking(void);

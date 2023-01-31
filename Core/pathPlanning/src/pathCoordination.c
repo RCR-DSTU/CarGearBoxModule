@@ -1,6 +1,12 @@
 #include "pathCoordination.h"
 
 /*!
+ * 0 - Core XY
+ * 1 - Pinion-rail
+ */
+#define KINEMATIC	0
+
+/*!
  * Measurement table of transmission
  * 0 - N flag
  * 1 - R flag
@@ -127,11 +133,39 @@ void ZeroPlanning(Path *output)
 //		float point1[2] = { 0.0, delta[1] };
 //		//AddPointInFront(&(*output->Points), &(*point1), 3, 0);
 //	}
-//	if(delta[0] != 0.0)
+//	if(delta[0] != 0.0)b
 //	{
 //		float point2[2] = { delta[0], 0.0 };
 //		//AddPointInFront(&(*output->Points), &(*point1), 3, 1);
 //	}
 //
 //	output->PathMoveFlag = true;
+}
+
+
+void Tracking(void)
+{
+
+#if(KINEMATIC == 0)
+
+	if(Transmission.Current_Dir == 1)
+	{
+		Transmission.X_pos = (Regulator[0].Dist + Regulator[1].Dist) / 2;
+		Regulator[2].Current = Transmission.X_pos;
+	} else if(Transmission.Current_Dir == 2)
+	{
+		Transmission.Y_pos = (Regulator[0].Dist - Regulator[1].Dist) / 2;
+		Regulator[2].Current = Transmission.Y_pos;
+	} else if(Transmission.Current_Dir == 3)
+	{
+		Transmission.Y_pos = (-Regulator[0].Dist + Regulator[1].Dist) / 2;
+		Regulator[2].Current = Transmission.Y_pos;
+	} else if(Transmission.Current_Dir == 4)
+	{
+		Transmission.X_pos = (-Regulator[0].Dist - Regulator[1].Dist) / 2;
+		Regulator[2].Current = Transmission.X_pos;
+	}
+
+#endif /* KINEMATIC__0 */
+
 }

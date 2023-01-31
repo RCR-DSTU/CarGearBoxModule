@@ -108,6 +108,8 @@ int main(void)
   osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
 
+  PID_init();
+  Track_init();
   /* Start scheduler */
   osKernelStart();
 
