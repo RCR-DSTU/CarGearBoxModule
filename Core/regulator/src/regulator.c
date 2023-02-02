@@ -71,7 +71,7 @@ void Track_init(void)
 	Regulator[2].Current = 0.0;
 	Regulator[2].Output = 0.0;
 	Regulator[2].Min_output = 2.5;
-	Regulator[2].Max_output = 9.0;
+	Regulator[2].Max_output = 8.0;
 	Regulator[2].Max_sum_error = 13.0;
 
 	Transmission.X_pos = 0.0;

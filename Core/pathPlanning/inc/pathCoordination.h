@@ -2,7 +2,7 @@
 #include "main.h"
 #include "regulator.h"
 
-#define POINTS_STACK_SIZE	7
+#define POINTS_STACK_SIZE	2
 
 typedef struct {
 	uint8_t LocalFlag;
@@ -21,6 +21,7 @@ typedef struct {
 	float LengthTrace;
 	float (* TraceVelocity);
 	float MiddleTraceError;
+	uint8_t LastPoint;
 	pathPoint Points[POINTS_STACK_SIZE];
 }Path;
 
@@ -35,3 +36,5 @@ void RemovePoint(pathPoint *pointsArray, uint8_t *lastPoint);
 void CreatePath(pathPoint *next_point, pathPoint *cur_point, Path *output);
 
 void Tracking(void);
+
+void ZeroPlanning(Path *output);

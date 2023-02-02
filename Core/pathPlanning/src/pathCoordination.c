@@ -21,6 +21,23 @@ Path PathPlan;
  * [Value] m/s
  */
 static float VelocityMap[5] = {0.1, 0.3, 0.5, 0.7, 1.0};
+
+
+void Planning_init(void)
+{
+	PathPlan.CurDirection = 0;
+	PathPlan.CurPoint[0] = 0.0;
+	PathPlan.CurPoint[1] = 0.0;
+	PathPlan.CurPointFlag = 0;
+	PathPlan.LengthTrace = 0.0;
+	PathPlan.MiddleTraceError = 0.0;
+	PathPlan.PathMoveFlag = false;
+	PathPlan.TargPoint[0] =  0.0;
+	PathPlan.TargPoint[1] = 0.0;
+	PathPlan.TargetPointFlag = 0;
+	PathPlan.LastPoint = 0;
+}
+
 /*!
  *
  * @param pointsArray
@@ -103,10 +120,20 @@ void AddPointInBack(pathPoint *points, float *newPoint,
  */
 void CreatePath(pathPoint *next_point, pathPoint *cur_point, Path *output)
 {
+	output->TargPoint[0] = next_point->PointX;
+	output->TargPoint[1] = next_point->PointY;
+
+	float delta[2] = { 0.0, 0.0 };
+
+	delta[0] = next_point->PointX - cur_point->PointX;
+	delta[1] = next_point->PointY - cur_point->PointY;
+
+	if(delta[0] != 0.0)
+	{
 
 
-
-
+	}
+	output->PathMoveFlag = true;
 }
 
 /*!
@@ -115,33 +142,44 @@ void CreatePath(pathPoint *next_point, pathPoint *cur_point, Path *output)
  */
 void ZeroPlanning(Path *output)
 {
+	if(output->CurPoint[0] == 0.0 &&
+	   output->CurPoint[1] == 0.0)
+	{
+		output->PathMoveFlag = false;
+		return;
+	}
 	output->PathMoveFlag = false;
-//	output->TargPoint[0] = 0.0;
-//	output->TargPoint[1] = 0.0;
-//
-//	float delta[2] = { 0.0, 0.0 };
-//
-//	delta[0] = output->CurPoint[0] - output->TargPoint[0];
-//	delta[1] = output->CurPoint[1] - output->TargPoint[1];
-//
-//	/* Clearing points table */
-//	for(int i = 0; sizeof(output->Points); i++)
-//		*((char *)(&output->Points[i])) = 0;
-//
-//	if(delta[1] != 0.0)
-//	{
-//		float point1[2] = { 0.0, delta[1] };
-//		//AddPointInFront(&(*output->Points), &(*point1), 3, 0);
-//	}
-//	if(delta[0] != 0.0)b
-//	{
-//		float point2[2] = { delta[0], 0.0 };
-//		//AddPointInFront(&(*output->Points), &(*point1), 3, 1);
-//	}
-//
-//	output->PathMoveFlag = true;
+	output->TargPoint[0] = 0.0;
+	output->TargPoint[1] = 0.0;
+
+	float delta[2] = { 0.0, 0.0 };
+
+	delta[0] = output->CurPoint[0] - output->TargPoint[0];
+	delta[1] = output->CurPoint[1] - output->TargPoint[1];
+
+	/* Clearing points table */
+	for(int i = 0; i < POINTS_STACK_SIZE; i++)
+		*((char *)(&output->Points[i])) = 0;
+
+	if(delta[1] != 0.0)
+	{
+		float point1[2] = { 0.0, delta[1] };
+		AddPointInBack(&(*output->Points), &(*point1), 3, &PathPlan.LastPoint);
+	}
+	if(delta[0] != 0.0)
+	{
+		float point2[2] = { delta[0], 0.0 };
+		AddPointInBack(&(*output->Points), &(*point2), 3, &PathPlan.LastPoint);
+	}
+
+	output->PathMoveFlag = true;
 }
 
+
+void CustomPlanning(Path *output)
+{
+
+}
 
 void Tracking(void)
 {

@@ -363,9 +363,9 @@ void TestTask(void *argument)
 	osTimerStart(xRegulatorHandle, (Regulator_periodMs / portTICK_RATE_MS));
 	osTimerStart(xTrackRegulatorHandle, (Tracking_periodMs / portTICK_RATE_MS));
 	PID_start();
-	Start_track(3, 49.5);
-//	SetVoltage(0, -0.3);
-//	SetVoltage(1, 0.3);
+	PathPlan.CurPoint[0] = 25.0;
+	PathPlan.CurPoint[1] = 5.0;
+	ZeroPlanning(&PathPlan);
 	for(;;)
 	{
 		osDelay(1000 / portTICK_RATE_MS);
