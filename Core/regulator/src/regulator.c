@@ -6,6 +6,7 @@ Transmit Transmission;
 float Transmit1_float;
 float Transmit2_float;
 #define StepTransmission  0.00007
+#define REDUCTION		92
 #define Freq		0.02
 
 /*!
@@ -22,8 +23,11 @@ void ParseEncoderData(void)
 	Regulator[0].Current = Dist[0] / Freq;
 	Regulator[1].Current = Dist[1] / Freq;
 
-	Regulator[0].Dist += (Dist[0] * 0.000635);
-	Regulator[1].Dist += (Dist[1] * 0.000635);
+	/*!
+	 * @fixme
+	 */
+	Regulator[0].Dist += (Dist[0] * 0.000635) / REDUCTION;
+	Regulator[1].Dist += (Dist[1] * 0.000635) / REDUCTION;
 
 	TIM3->CNT = 0;
 	TIM4->CNT = 0;

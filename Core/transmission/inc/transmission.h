@@ -4,7 +4,6 @@
 #include "pathCoordination.h"
 
 typedef struct {
-	int8_t Current_flag;
 	float Current_Dist[2];
 	uint8_t Current_Dir;
 	char *Finish;

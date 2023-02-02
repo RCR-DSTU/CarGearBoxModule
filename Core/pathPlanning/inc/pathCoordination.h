@@ -5,23 +5,15 @@
 #define POINTS_STACK_SIZE	2
 
 typedef struct {
-	uint8_t LocalFlag;
+	uint8_t Direction;
 	float PointX;
 	float PointY;
 	float (* PointVelocity);
 }pathPoint;
 
 typedef struct {
-	bool PathMoveFlag;
-	uint8_t CurPointFlag;
-	uint8_t CurDirection;
-	uint8_t TargetPointFlag;
-	float CurPoint[2];
-	float TargPoint[2];
-	float LengthTrace;
-	float (* TraceVelocity);
-	float MiddleTraceError;
-	uint8_t LastPoint;
+	bool MoveFlag;
+	int8_t TargetTransmissionFlag;
 	pathPoint Points[POINTS_STACK_SIZE];
 }Path;
 

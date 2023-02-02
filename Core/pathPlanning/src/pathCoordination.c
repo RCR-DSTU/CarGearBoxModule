@@ -22,20 +22,9 @@ Path PathPlan;
  */
 static float VelocityMap[5] = {0.1, 0.3, 0.5, 0.7, 1.0};
 
-
 void Planning_init(void)
 {
-	PathPlan.CurDirection = 0;
-	PathPlan.CurPoint[0] = 0.0;
-	PathPlan.CurPoint[1] = 0.0;
-	PathPlan.CurPointFlag = 0;
-	PathPlan.LengthTrace = 0.0;
-	PathPlan.MiddleTraceError = 0.0;
-	PathPlan.PathMoveFlag = false;
-	PathPlan.TargPoint[0] =  0.0;
-	PathPlan.TargPoint[1] = 0.0;
-	PathPlan.TargetPointFlag = 0;
-	PathPlan.LastPoint = 0;
+
 }
 
 /*!
@@ -87,96 +76,74 @@ void AddPointInFront(pathPoint *points, float *newPoint,
 
 /*!
  *
- * @param points
- * @param newPoint
- * @param type
- * @param lastPoint
- */
-void AddPointInBack(pathPoint *points, float *newPoint,
-		uint8_t type, uint8_t *lastPoint)
-{
-	int8_t i,j;
-	for(i = 0; i <= *lastPoint; i++)
-	{
-		if(!((i - 1) < 0))
-		{
-			for(j = 0; j < sizeof(pathPoint); j++)
-				*(((char *)(&points[i])) + j) = *(((char *)(&points[i + 1])) + j);
-		}
-	}
-
-	points[POINTS_STACK_SIZE - 1].PointVelocity = &VelocityMap[type];
-	points[POINTS_STACK_SIZE - 1].PointX = *newPoint;
-	points[POINTS_STACK_SIZE - 1].PointY = *(newPoint + 1);
-
-	(*lastPoint)--;
-}
-
-/*!
- *
  * @param next_point
  * @param cur_point
  * @param output
  */
 void CreatePath(pathPoint *next_point, pathPoint *cur_point, Path *output)
 {
-	output->TargPoint[0] = next_point->PointX;
-	output->TargPoint[1] = next_point->PointY;
-
-	float delta[2] = { 0.0, 0.0 };
-
-	delta[0] = next_point->PointX - cur_point->PointX;
-	delta[1] = next_point->PointY - cur_point->PointY;
-
-	if(delta[0] != 0.0)
+	if(!output->MoveFlag)
 	{
+		float delta_X, delta_Y = 0.0;
 
+		delta_X = next_point->PointX - cur_point->PointX;
+		delta_Y = next_point->PointY - cur_point->PointY;
 
+		Transmission.Current_Dir = next_point->Direction;
+
+		switch(Transmission.Current_Dir)
+		{
+		case 1:
+		{
+			Transmission.Current_Dist[0] = delta_X;
+			Transmission.Current_Dist[1] = 0.0;
+			Transmission.Transmit_float[0] = *next_point->PointVelocity;
+			Transmission.Transmit_float[1] = 0.0;
+			break;
+		}
+		case 2:
+		{
+			Transmission.Current_Dist[1] = delta_Y;
+			Transmission.Current_Dist[0] = 0.0;
+			Transmission.Transmit_float[1] = *next_point->PointVelocity;
+			Transmission.Transmit_float[0] = 0.0;
+			break;
+		}
+		case 3:
+		{
+			Transmission.Current_Dist[1] = delta_Y;
+			Transmission.Current_Dist[0] = 0.0;
+			Transmission.Transmit_float[1] = *next_point->PointVelocity;
+			Transmission.Transmit_float[0] = 0.0;
+			break;
+		}
+		case 4:
+		{
+			Transmission.Current_Dist[0] = delta_X;
+			Transmission.Current_Dist[1] = 0.0;
+			Transmission.Transmit_float[0] = *next_point->PointVelocity;
+			Transmission.Transmit_float[1] = 0.0;
+			break;
+		}
+		default:
+		{
+			Transmission.Current_Dist[0] = 0.0;
+			Transmission.Current_Dist[1] = 0.0;
+			Transmission.Transmit_float[0] = 0.0;
+			Transmission.Transmit_float[1] = 0.0;
+			break;
+		}
+		}
+		Transmission.Finish = false;
 	}
-	output->PathMoveFlag = true;
 }
 
-/*!
- *
- * @param output
- */
-void ZeroPlanning(Path *output)
+void ZeroPlanning(void)
 {
-	if(output->CurPoint[0] == 0.0 &&
-	   output->CurPoint[1] == 0.0)
-	{
-		output->PathMoveFlag = false;
-		return;
-	}
-	output->PathMoveFlag = false;
-	output->TargPoint[0] = 0.0;
-	output->TargPoint[1] = 0.0;
 
-	float delta[2] = { 0.0, 0.0 };
-
-	delta[0] = output->CurPoint[0] - output->TargPoint[0];
-	delta[1] = output->CurPoint[1] - output->TargPoint[1];
-
-	/* Clearing points table */
-	for(int i = 0; i < POINTS_STACK_SIZE; i++)
-		*((char *)(&output->Points[i])) = 0;
-
-	if(delta[1] != 0.0)
-	{
-		float point1[2] = { 0.0, delta[1] };
-		AddPointInBack(&(*output->Points), &(*point1), 3, &PathPlan.LastPoint);
-	}
-	if(delta[0] != 0.0)
-	{
-		float point2[2] = { delta[0], 0.0 };
-		AddPointInBack(&(*output->Points), &(*point2), 3, &PathPlan.LastPoint);
-	}
-
-	output->PathMoveFlag = true;
 }
 
-
-void CustomPlanning(Path *output)
+void CustomPlanning(uint8_t Transmission)
 {
 
 }
